@@ -19,7 +19,11 @@ export type MailTemplateId =
   | "mentorship-request-mentor"
   | "alumni-connect-request"
   | "admin-invite"
-  | "status-update";
+  | "status-update"
+  | "broadcast-news"
+  | "broadcast-event"
+  | "broadcast-scholarship"
+  | "broadcast-job";
 
 export type MailTemplateData = Record<string, any>;
 
@@ -403,6 +407,84 @@ export function buildMailTemplate(id: MailTemplateId, data: MailTemplateData = {
         }),
       };
 
+    case "broadcast-news":
+      return {
+        subject: `${brand.name}: ${data.title || "Latest news"}`,
+        html: mailLayout({
+          title: data.title || "Latest news",
+          preheader: data.summary || "New from Nutrition & Food Science.",
+          body: `
+            <p>${greeting(firstname)}</p>
+            <p>Here’s a new update from the department:</p>
+            <p style="margin:16px 0;padding:14px 16px;background:#f7faf8;border-left:3px solid ${brand.gold};border-radius:6px">${escapeHtml(data.summary || "")}</p>
+            ${detailRows([["Category", escapeHtml(data.category || "")]])}
+          `,
+          ctaLabel: data.ctaLabel || "Read article",
+          ctaUrl: data.ctaUrl || `${site}/news`,
+        }),
+      };
+
+    case "broadcast-event":
+      return {
+        subject: `Upcoming event: ${data.title || "NFS event"}`,
+        html: mailLayout({
+          title: data.title || "Upcoming event",
+          preheader: data.summary || "You’re invited to an NFS event.",
+          body: `
+            <p>${greeting(firstname)}</p>
+            <p>A new event has been announced on ${brand.name}:</p>
+            <p style="margin:16px 0;padding:14px 16px;background:#f7faf8;border-left:3px solid ${brand.gold};border-radius:6px">${escapeHtml(data.summary || "")}</p>
+            ${detailRows([
+              ["When", escapeHtml(data.when || "")],
+              ["Where", escapeHtml(data.where || "")],
+            ])}
+          `,
+          ctaLabel: data.ctaLabel || "View event",
+          ctaUrl: data.ctaUrl || `${site}/events`,
+        }),
+      };
+
+    case "broadcast-scholarship":
+      return {
+        subject: `Scholarship opportunity: ${data.title || "NFS scholarship"}`,
+        html: mailLayout({
+          title: data.title || "Scholarship opportunity",
+          preheader: data.summary || "A new scholarship is open.",
+          body: `
+            <p>${greeting(firstname)}</p>
+            <p>A new scholarship listing is available for Nutrition &amp; Food Science students:</p>
+            <p style="margin:16px 0;padding:14px 16px;background:#f7faf8;border-left:3px solid ${brand.gold};border-radius:6px">${escapeHtml(data.summary || "")}</p>
+            ${detailRows([
+              ["Deadline", escapeHtml(data.deadline || data.when || "")],
+              ["Provider", escapeHtml(data.where || "")],
+            ])}
+          `,
+          ctaLabel: data.ctaLabel || "View scholarship",
+          ctaUrl: data.ctaUrl || `${site}/scholarships`,
+        }),
+      };
+
+    case "broadcast-job":
+      return {
+        subject: `New opportunity: ${data.title || "Job opening"}`,
+        html: mailLayout({
+          title: data.title || "New job opening",
+          preheader: data.summary || "A new job was posted on the careers board.",
+          body: `
+            <p>${greeting(firstname)}</p>
+            <p>A new role was posted on the ${brand.name} careers board:</p>
+            <p style="margin:16px 0;padding:14px 16px;background:#f7faf8;border-left:3px solid ${brand.gold};border-radius:6px">${escapeHtml(data.summary || "")}</p>
+            ${detailRows([
+              ["Company", escapeHtml(data.company || data.where || "")],
+              ["Deadline", escapeHtml(data.deadline || "")],
+              ["Category", escapeHtml(data.category || "")],
+            ])}
+          `,
+          ctaLabel: data.ctaLabel || "View job",
+          ctaUrl: data.ctaUrl || `${site}/jobs`,
+        }),
+      };
+
     default:
       return {
         subject: brand.name,
@@ -440,4 +522,8 @@ export const MAIL_CATALOG: Array<{
   { id: "alumni-connect-request", name: "Alumni connect request", trigger: "POST /alumni/profiles/:id/connect", audience: "Alumni profile owner" },
   { id: "admin-invite", name: "Admin invitation", trigger: "Admin creates access user", audience: "New admin" },
   { id: "status-update", name: "Generic status update", trigger: "Admin reviews application / request", audience: "Member" },
+  { id: "broadcast-news", name: "News broadcast", trigger: "Publish news with Notify subscribers / POST broadcast", audience: "Subscribers + members" },
+  { id: "broadcast-event", name: "Event broadcast", trigger: "Publish event with Notify subscribers / POST broadcast", audience: "Subscribers + members" },
+  { id: "broadcast-scholarship", name: "Scholarship broadcast", trigger: "Publish scholarship with Notify subscribers / POST broadcast", audience: "Subscribers + members" },
+  { id: "broadcast-job", name: "Job broadcast", trigger: "Publish job with Notify subscribers / POST broadcast", audience: "Subscribers + members" },
 ];

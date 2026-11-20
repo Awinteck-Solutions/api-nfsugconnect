@@ -23,3 +23,7 @@ Open any .html file in a browser to preview.
 | `alumni-connect-request` | Alumni connect request | POST /alumni/profiles/:id/connect | Alumni profile owner |
 | `admin-invite` | Admin invitation | Admin creates access user | New admin |
 | `status-update` | Generic status update | Admin reviews application / request | Member |
+| `broadcast-news` | News broadcast | Publish news with Notify subscribers / POST broadcast | Subscribers + members |
+| `broadcast-event` | Event broadcast | Publish event with Notify subscribers / POST broadcast | Subscribers + members |
+| `broadcast-scholarship` | Scholarship broadcast | Publish scholarship with Notify subscribers / POST broadcast | Subscribers + members |
+| `broadcast-job` | Job broadcast | Publish job with Notify subscribers / POST broadcast | Subscribers + members |

@@ -27,6 +27,9 @@ function mountFeature(path: string, feature: string, actions: string[]) {
   Router.patch(`${path}/:slug`, authentification, requirePermission(feature, "update"), (req: Request, res: Response) => {
     FeatureController.update(feature, req, res);
   });
+  Router.post(`${path}/:slug/broadcast`, authentification, requirePermission(feature, "update"), (req: Request, res: Response) => {
+    FeatureController.broadcast(feature, req, res);
+  });
   Router.delete(`${path}/:slug`, authentification, requirePermission(feature, "delete"), (req: Request, res: Response) => {
     FeatureController.remove(feature, req, res);
   });

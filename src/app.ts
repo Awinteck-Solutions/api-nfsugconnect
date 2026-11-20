@@ -37,7 +37,7 @@ app.get('/', (req: Request, res: Response) => {
 
 
 connectToDatabase().then(() => { 
-    app.listen(process.env.PORT, ()=> console.log('Server running on port 3000'))
+    app.listen(process.env.PORT, ()=> console.log(`Server running on port ${process.env.PORT}`))
 }).catch((error) => {
-    console.log('error :>> ', error);
+    console.log(`error :>> ${error}`);
 })

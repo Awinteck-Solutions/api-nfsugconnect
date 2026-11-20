@@ -3,6 +3,11 @@ import FeatureRecord from "../schema/feature-record.schema";
 import Interaction from "../schema/interaction.schema";
 import { featureDefinitions } from "../feature.registry";
 import { sendMail } from "../../../helpers/emailer";
+import {
+  broadcastFeatureRecord,
+  BroadcastAudience,
+  isBroadcastable,
+} from "../../../helpers/mail/broadcast.service";
 
 function safeMail(promise: Promise<any>) {
   return promise.catch((err) => {
@@ -200,12 +205,44 @@ function present(record: any) {
   };
 }
 
-const computedKeys = ["id", "_id", "feature", "postedAt", "updatedAt"];
+const computedKeys = [
+  "id",
+  "_id",
+  "feature",
+  "postedAt",
+  "updatedAt",
+  "notifySubscribers",
+  "broadcastAudience",
+  "forceBroadcast",
+];
 
 function recordData(body: any) {
   const data = { ...(body || {}) };
   computedKeys.forEach((key) => delete data[key]);
   return data;
+}
+
+function wantsBroadcast(body: any) {
+  const value = body?.notifySubscribers;
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function broadcastAudience(body: any): BroadcastAudience {
+  const value = String(body?.broadcastAudience || "all").toLowerCase();
+  if (value === "subscribers" || value === "members") return value;
+  return "all";
+}
+
+async function maybeBroadcast(feature: string, record: any, body: any, options: { force?: boolean } = {}) {
+  if (!isBroadcastable(feature) || !record) return null;
+  if (record?.data?.visibility === "draft") return null;
+  if (!wantsBroadcast(body) && !options.force) return null;
+  return broadcastFeatureRecord({
+    feature,
+    record,
+    audience: broadcastAudience(body),
+    force: Boolean(options.force || body?.forceBroadcast),
+  });
 }
 
 function isDraft(record: any) {
@@ -307,7 +344,13 @@ export class FeatureController {
         { data: recordData(req.body) },
         { upsert: true, new: true, setDefaultsOnInsert: true },
       );
-      return res.status(201).json({ status: true, message: `${feature} saved`, response: present(record) });
+      const broadcast = await maybeBroadcast(feature, record, req.body);
+      return res.status(201).json({
+        status: true,
+        message: `${feature} saved`,
+        response: present(record),
+        broadcast: broadcast || undefined,
+      });
     } catch (error) {
       return res.status(500).json({ status: false, message: "System error" });
     }
@@ -321,10 +364,46 @@ export class FeatureController {
       record.data = { ...(record.data || {}), ...recordData(req.body), slug: record.slug };
       record.markModified("data");
       await record.save();
-      return res.json({ status: true, message: `${feature} updated`, response: present(record) });
+      const broadcast = await maybeBroadcast(feature, record, req.body);
+      return res.json({
+        status: true,
+        message: `${feature} updated`,
+        response: present(record),
+        broadcast: broadcast || undefined,
+      });
     } catch (error) {
       if (error && error.code === 11000) return res.status(409).json({ status: false, message: "Slug already exists" });
       return res.status(500).json({ status: false, message: "System error" });
+    }
+  }
+
+  static async broadcast(feature: string, req: Request, res: Response) {
+    try {
+      if (!isBroadcastable(feature)) {
+        return res.status(400).json({ status: false, message: "This feature does not support email broadcasts" });
+      }
+      const record = await FeatureRecord.findOne({ feature, kind: "item", slug: req.params.slug });
+      if (!record) return res.status(404).json({ status: false, message: "Not found" });
+      if (record.data?.visibility === "draft") {
+        return res.status(400).json({ status: false, message: "Publish the record before broadcasting" });
+      }
+      const result = await broadcastFeatureRecord({
+        feature,
+        record,
+        audience: broadcastAudience(req.body || {}),
+        force: true,
+      });
+      return res.json({
+        status: true,
+        message: result.skipped
+          ? `Broadcast skipped (${result.reason})`
+          : `Broadcast sent to ${result.sent} recipient${result.sent === 1 ? "" : "s"}`,
+        response: present(record),
+        broadcast: result,
+      });
+    } catch (error) {
+      console.error("[broadcast]", error);
+      return res.status(500).json({ status: false, message: "Unable to send broadcast" });
     }
   }
 
