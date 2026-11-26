@@ -24,6 +24,9 @@ coverage
 dist
 build
 
+# Uploads are runtime data, kept in the nfs-uploads volume
+uploads
+
 # Ignore temporary files
 tmp
 *.tmp

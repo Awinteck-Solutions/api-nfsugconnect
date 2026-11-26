@@ -7,7 +7,6 @@ import "reflect-metadata";
 import * as dotenv from 'dotenv';
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import * as cors from 'cors';
-import path = require("path");
 import connectToDatabase from "./database/data-source";
 import { uploadRoot } from "./Features/access/controllers/upload.controller";
 // const swaggerUi = require("swagger-ui-express");
@@ -26,7 +25,6 @@ app.use(Router)
 // app.use("/swagger", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use('/uploads', express.static(uploadRoot, { maxAge: '7d' }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req: Request, res: Response) => { 
     res.json({

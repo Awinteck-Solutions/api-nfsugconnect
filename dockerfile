@@ -27,7 +27,14 @@ RUN apk add --no-cache ffmpeg
 # Copy only the built app + node_modules from builder
 COPY --from=builder /app /app
 
-# App listens on PORT from env (default 8383). Map with: -p 8383:8383 --env-file .env
+# Uploads live outside /app so an image rebuild does not replace them.
+# Keep them with a named volume: -v nfs-uploads:/data/uploads
+ENV UPLOAD_DIR=/data/uploads
+RUN mkdir -p /data/uploads/images /data/uploads/files
+VOLUME ["/data/uploads"]
+
+# App listens on PORT from env (default 8383).
+# docker run -d --name nfs-api -p 8383:8383 --env-file .env -v nfs-uploads:/data/uploads nfs-api
 # Important: Docker --env-file does not strip quotes. Use DB_URL=mongodb://... with no quotes.
 EXPOSE 8383
 

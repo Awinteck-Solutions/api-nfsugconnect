@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8383:8383"
+    env_file:
+      - .env
+    environment:
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - nfs-uploads:/data/uploads
+    restart: unless-stopped
+
+volumes:
+  nfs-uploads:

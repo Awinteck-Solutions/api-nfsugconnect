@@ -3,9 +3,13 @@ import * as path from "path";
 import * as fs from "fs";
 const multer = require("multer");
 
-export const uploadRoot = path.join(process.cwd(), "uploads");
+export const uploadRoot = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(process.cwd(), "uploads");
 const imageDir = path.join(uploadRoot, "images");
 const fileDir = path.join(uploadRoot, "files");
+fs.mkdirSync(imageDir, { recursive: true });
+fs.mkdirSync(fileDir, { recursive: true });
 const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "image/avif"];
 
 const documentTypes = [
