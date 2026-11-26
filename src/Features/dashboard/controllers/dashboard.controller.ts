@@ -560,7 +560,9 @@ export class DashboardController {
         },
       });
     } catch (error) {
-      console.error("[dashboard/me]", error);
+      const err = error as { name?: string; message?: string; stack?: string };
+      console.error("[dashboard/me]", err?.name || "Error", err?.message || error);
+      if (err?.stack) console.error(err.stack);
       return res.status(500).json({ status: false, message: "System error" });
     }
   }
