@@ -21,8 +21,10 @@ function mongoUri() {
 
 const connectToDatabase = async () => {
   try {
+    // Do not enable sanitizeFilter. Mongoose 8.24 applies it to every query and
+    // wraps server-built operators ($in, $ne, $gte, $exists) in $eq, which
+    // makes GET /dashboard/me throw CastError on FeatureRecord.slug.
     await mongoose.connect(mongoUri(), {
-      sanitizeFilter: true,
       autoCreate: true,
     });
     console.log("Connected to MongoDB successfully!");
