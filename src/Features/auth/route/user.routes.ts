@@ -8,6 +8,7 @@ import multer from "multer";
 import { upload } from "../../../helpers/uploader";
 import { authentification } from "../../../middlewares/authentication.middleware";
 import { authorization } from "../../../middlewares/authorization.middleware";
+import { UploadController, receiveFile, receiveImage } from "../../access/controllers/upload.controller";
 
 // Extend Express Request to include Multer's file property
 interface MulterRequest extends Request {
@@ -42,6 +43,22 @@ Router.get("/profile",
     }
 );
 
+
+Router.post("/profile-image",
+    authentification,
+    receiveImage,
+    (req: Request, res: Response) => {
+        UploadController.image(req, res);
+    }
+);
+
+Router.post("/upload-file",
+    authentification,
+    receiveFile,
+    (req: Request, res: Response) => {
+        UploadController.file(req, res);
+    }
+);
 
 // UPDATE PROFILE
 Router.patch("/update-user",

@@ -44,6 +44,7 @@ export class AuthController {
       const encryptedPassword = await encrypt.encryptpass(password);
       const normalizedRole = AuthController.normalizeRole(role);
       const year = classYear ? Number(classYear) : null;
+      const graduated = Number.isFinite(year) && year > 0 && year <= new Date().getFullYear() && normalizedRole !== Roles.ADMIN;
 
       const user = await User.create({
         firstname,
@@ -51,11 +52,11 @@ export class AuthController {
         email,
         password: encryptedPassword,
         otp,
-        role: normalizedRole,
+        role: graduated ? Roles.ALUMNI : normalizedRole,
         classYear: Number.isFinite(year) ? year : null,
         program: program || null,
         yearGroupSlug: yearGroupSlug || (year ? `class-of-${year}` : null),
-        alsoAlumni: Boolean(alsoAlumni) || normalizedRole === Roles.ALUMNI,
+        alsoAlumni: Boolean(alsoAlumni) || normalizedRole === Roles.ALUMNI || graduated,
         handle: handle || null,
       });
 

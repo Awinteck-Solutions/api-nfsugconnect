@@ -9,6 +9,32 @@ import { encrypt } from "../../../helpers/tokenizer";
 interface MulterRequest extends Request {
   file: multer.File;
 }
+
+const SOCIAL_KEYS = ["linkedin", "twitter", "instagram", "facebook", "youtube", "tiktok", "website", "github", "whatsapp"];
+const TEXT_LIMITS: Record<string, number> = {
+  firstname: 80,
+  lastname: 80,
+  phoneNumber: 40,
+  profileImage: 500,
+  program: 160,
+  yearGroupSlug: 80,
+  handle: 80,
+  headline: 160,
+  bio: 2000,
+  location: 120,
+  organisation: 160,
+  interests: 400,
+};
+
+function cleanSocials(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  const socials: Record<string, string> = {};
+  SOCIAL_KEYS.forEach((key) => {
+    if (typeof source[key] === "string") socials[key] = source[key].trim().slice(0, 300);
+  });
+  return socials;
+}
 export class UserController {
   // Admin routes
 
@@ -166,17 +192,31 @@ export class UserController {
   static async updateUser(req: MulterRequest, res: Response) {
     try {
       const id = req.params.id || req["currentUser"].id;
-      const allowedFields = ["firstname", "lastname", "phoneNumber", "profileImage", "classYear", "program", "yearGroupSlug", "handle", "alsoAlumni"];
+      const existing = await User.findById(id).select("classYear role alsoAlumni");
+      if (!existing) return res.status(404).json({ status: false, message: "User not found" });
+      const yearLocked = Boolean(existing.classYear);
+      const allowedFields = ["firstname", "lastname", "phoneNumber", "profileImage", "classYear", "program", "yearGroupSlug", "handle", "alsoAlumni", "headline", "bio", "location", "organisation", "interests", "socials"];
       if (req.params.id) allowedFields.push("role", "status");
-      const updates = req.body;
+      const updates = { ...req.body };
+      if (yearLocked && !req.params.id) {
+        delete updates.classYear;
+        delete updates.yearGroupSlug;
+      }
       const profileImage = req.file ? req.file.filename : null;
 
       const user:any = {};
       // Only allow updates for specific fields
       Object.keys(updates).forEach((key) => {
-        if (allowedFields.includes(key)) {
-          user[key] = updates[key];
+        if (!allowedFields.includes(key)) return;
+        if (key === "socials") {
+          user.socials = cleanSocials(updates.socials);
+          return;
         }
+        if (typeof updates[key] === "string" && TEXT_LIMITS[key]) {
+          user[key] = updates[key].trim().slice(0, TEXT_LIMITS[key]);
+          return;
+        }
+        user[key] = updates[key];
       });
 
       // Update profile image if provided
@@ -184,11 +224,28 @@ export class UserController {
         user.profileImage = profileImage;
       }
 
+      const classYear = yearLocked ? existing.classYear : (user.classYear ?? existing.classYear);
+      const graduated = Number(classYear) > 0 && Number(classYear) <= new Date().getFullYear();
+      if (graduated && !req.params.id) {
+        user.role = "ALUMNI";
+        user.alsoAlumni = true;
+      }
+      if (!yearLocked && user.classYear) {
+        user.yearGroupSlug = `class-of-${user.classYear}`;
+      }
+
       User.updateOne({_id:id}, {...user}, {upsert:false})
-        .then((result) => {
+        .then(() => {
             return res.status(201).json({
                 status:true,
-                message: 'User update success', 
+                message: 'User update success',
+                response: {
+                  role: user.role || existing.role,
+                  alsoAlumni: user.alsoAlumni !== undefined ? Boolean(user.alsoAlumni) : Boolean(existing.alsoAlumni),
+                  classYear: classYear || null,
+                  yearLocked: yearLocked || Boolean(user.classYear),
+                  graduated,
+                },
             });
         }).catch((error) => {
             return res.status(404).json({

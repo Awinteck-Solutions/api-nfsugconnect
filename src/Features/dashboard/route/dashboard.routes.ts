@@ -14,6 +14,48 @@ Router.get("/me",
   }
 );
 
+Router.post("/me/bookmarks",
+  authentification,
+  (req: Request, res: Response) => {
+    DashboardController.toggleBookmark(req, res);
+  }
+);
+
+Router.post("/me/messages",
+  authentification,
+  (req: Request, res: Response) => {
+    DashboardController.sendMessage(req, res);
+  }
+);
+
+Router.patch("/me/notifications",
+  authentification,
+  (req: Request, res: Response) => {
+    DashboardController.updateNotificationPrefs(req, res);
+  }
+);
+
+Router.post("/me/notifications/read",
+  authentification,
+  (req: Request, res: Response) => {
+    DashboardController.markNotificationsRead(req, res);
+  }
+);
+
+Router.post("/me/communities",
+  authentification,
+  (req: Request, res: Response) => {
+    DashboardController.joinCommunity(req, res);
+  }
+);
+
+Router.post("/me/communities/leave",
+  authentification,
+  (req: Request, res: Response) => {
+    DashboardController.leaveCommunity(req, res);
+  }
+);
+
 Router.patch("/me/year-group",
   authentification,
   (req: Request, res: Response) => {

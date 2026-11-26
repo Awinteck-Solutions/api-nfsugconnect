@@ -27,8 +27,8 @@ RUN apk add --no-cache ffmpeg
 # Copy only the built app + node_modules from builder
 COPY --from=builder /app /app
 
-# Expose port
+# App listens on PORT from env (default 8383). Map with: -p 8383:8383 --env-file .env
+# Important: Docker --env-file does not strip quotes. Use DB_URL=mongodb://... with no quotes.
 EXPOSE 8383
 
-# Start the app
 CMD ["npm", "start"]

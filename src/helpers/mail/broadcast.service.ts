@@ -84,8 +84,28 @@ export function recordBroadcastPayload(feature: BroadcastFeature, record: any) {
   };
 }
 
-export async function collectBroadcastRecipients(audience: BroadcastAudience = "all") {
+const prefByFeature: Record<BroadcastFeature, string> = {
+  news: "newsletter",
+  events: "events",
+  scholarships: "scholarships",
+  jobs: "jobs",
+};
+
+async function blockedEmails(feature?: BroadcastFeature) {
+  const blocked = new Set<string>();
+  const or: Record<string, unknown>[] = [{ "notificationPrefs.email": false }];
+  if (feature) or.push({ [`notificationPrefs.${prefByFeature[feature]}`]: false });
+  const users = await User.find({ $or: or }).select("email").lean();
+  users.forEach((user) => {
+    const email = normalizeEmail(user.email);
+    if (email) blocked.add(email);
+  });
+  return blocked;
+}
+
+export async function collectBroadcastRecipients(audience: BroadcastAudience = "all", feature?: BroadcastFeature) {
   const emails = new Set<string>();
+  const blocked = await blockedEmails(feature);
 
   if (audience === "subscribers" || audience === "all") {
     const subs = await Interaction.find({ feature: "newsletter", action: "subscribe" })
@@ -93,7 +113,7 @@ export async function collectBroadcastRecipients(audience: BroadcastAudience = "
       .lean();
     for (const row of subs) {
       const email = normalizeEmail((row as any)?.payload?.email);
-      if (isEmail(email)) emails.add(email);
+      if (isEmail(email) && !blocked.has(email)) emails.add(email);
     }
   }
 
@@ -107,7 +127,7 @@ export async function collectBroadcastRecipients(audience: BroadcastAudience = "
       .lean();
     for (const user of users) {
       const email = normalizeEmail(user.email);
-      if (isEmail(email)) emails.add(email);
+      if (isEmail(email) && !blocked.has(email)) emails.add(email);
     }
   }
 
@@ -129,7 +149,7 @@ export async function broadcastFeatureRecord(options: {
     return { sent: 0, skipped: true, reason: "already-broadcast", broadcastAt: record.data.broadcastAt };
   }
 
-  const recipients = await collectBroadcastRecipients(audience);
+  const recipients = await collectBroadcastRecipients(audience, feature);
   if (!recipients.length) {
     return { sent: 0, skipped: true, reason: "no-recipients" };
   }
